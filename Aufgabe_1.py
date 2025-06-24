@@ -44,6 +44,9 @@ bh_i2c = bh(0x23, i2c)
 lumi = 0
 lums = 0
 
+# Counter für OTA Updates
+ota_counter = 0
+
 #-------------------------------------------
 
 # # Temperaturmessung
@@ -102,11 +105,12 @@ def mqtt_broker():
 #-------------------------------------------
 
 # Grundfunktionen aufrufen
-wlan_verbinden("SSID", "PASSWORD")
+wlan_verbinden(SSID, PASSWORD)
 mqtt_client, topic = mqtt_broker()
 
-#OTA Updater initialisieren (nach WLAN-Verbindung)
-ota_updater = OTAUpdater("SSID", "PASSWORD", "https://github.com/your-repo/your-project", "Aufgabe_1.py")
+# OTA Updater initialisieren (nach WLAN-Verbindung)
+# WICHTIG: Ersetzen Sie die URL mit Ihrer echten GitHub Repository URL!
+ota_updater = OTAUpdater(SSID, PASSWORD, "https://raw.githubusercontent.com/WolfgangNiehues/Stromverbrauch_bei_Anwendung_oeffentlich/main/version.json", "Aufgabe_1.py")
 #--------------------------------------------
 
 # Hauptprogramm
@@ -121,10 +125,22 @@ while True:
         print("Sende JSON:", payload)
         if mqtt_client:
             mqtt_client.publish(topic, payload)
-        time.sleep(6)  # 60 Sekunden warten    except KeyboardInterrupt:
+        time.sleep(6)  # 6 Sekunden warten
+        
+        # OTA Update prüfen (alle 10 Zyklen)
+        ota_counter += 1
+        
+        if ota_counter % 10 == 0:  # Alle 10 Messungen prüfen
+            try:
+                if ota_updater.check_for_updates():
+                    print("Update verfügbar! Lade herunter...")
+                    ota_updater.download_and_install_update_if_available()
+            except Exception as ota_error:
+                print(f"OTA Fehler: {ota_error}")
+                
     except KeyboardInterrupt:
         print("Programm wurde durch den Benutzer beendet.")
-        break    
+        break
     except Exception as e:
         print(f"Fehler im Hauptprogramm: {e}")
         time.sleep(10)  # Bei Fehlern länger warten
