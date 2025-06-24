@@ -1,0 +1,1 @@
+# Stromverbrauch_bei_Anwendung_-ffentlich
