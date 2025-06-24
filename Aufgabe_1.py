@@ -40,9 +40,8 @@ i2c = SoftI2C(scl=Pin(4), sda=Pin(5))
 bh_i2c = bh(0x23, i2c)
 
 # Initialisierung der Variablen für die Lichtmessung
-#lum auf 0
 lumi = 0
-lums = 0
+
 
 # Counter für OTA Updates
 ota_counter = 0
@@ -62,31 +61,11 @@ ota_counter = 0
 # Lichtmessung mit BH1750
 def lum ():
     
-    global lumi
-    global lums
-    
     lumi = bh_i2c.measurement
     lumi = round(lumi)
     lums = f"{lumi} lumen"
     return lumi
 #--------------------------------------------
-    
-# WLAN-Verbindung Konfiguration
-def wlan_verbinden(ssid, passwort):
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    wlan.connect(ssid, passwort)
-    timeout = 10
-    start = time.time()
-    while not wlan.isconnected():
-        if time.time() - start > timeout:
-            print("Verbindung zum WLAN fehlgeschlagen.")
-            return False
-        print("Verbinde...")
-        time.sleep(1)
-    print("WLAN verbunden:", wlan.ifconfig())
-    return True
-#-------------------------------------------
 
 # MQTT-Broker Konfiguration
 def mqtt_broker():
@@ -109,8 +88,9 @@ wlan_verbinden(SSID, PASSWORD)
 mqtt_client, topic = mqtt_broker()
 
 # OTA Updater initialisieren (nach WLAN-Verbindung)
-# WICHTIG: Ersetzen Sie die URL mit Ihrer echten GitHub Repository URL!
-ota_updater = OTAUpdater(SSID, PASSWORD, "https://raw.githubusercontent.com/WolfgangNiehues/Stromverbrauch_bei_Anwendung_oeffentlich/main/version.json", "Aufgabe_1.py")
+# WICHTIG: Repository-URL verwenden, NICHT die direkte version.json URL!
+ota_updater = OTAUpdater(SSID, PASSWORD, "https://github.com/WolfgangNiehues/Stromverbrauch_bei_Anwendung_oeffentlich", "Aufgabe_1.py")
+
 #--------------------------------------------
 
 # Hauptprogramm
