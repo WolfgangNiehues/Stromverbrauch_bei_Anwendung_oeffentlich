@@ -84,11 +84,27 @@ def mqtt_broker():
 #-------------------------------------------
 
 # Grundfunktionen aufrufen
-wlan_verbinden(SSID, PASSWORD)
 mqtt_client, topic = mqtt_broker()
 
+# WORKAROUND: Korrigiere die fehlerhafte URL-Zusammensetzung in der OTA-Klasse
+import re
+
+# Monkey-patch für die OTAUpdater URL-Korrektur
+original_init = OTAUpdater.__init__
+
+def patched_init(self, ssid, password, repo_url, filename):
+    original_init(self, ssid, password, repo_url, filename)
+    # Korrigiere die fehlerhaften URLs
+    if "main/version.json" in self.version_url and "/main/" not in self.version_url:
+        self.version_url = self.version_url.replace("main/version.json", "/main/version.json")
+        print(f"URL korrigiert zu: {self.version_url}")
+    if "main/" in self.firmware_url and "/main/" not in self.firmware_url:
+        self.firmware_url = self.firmware_url.replace("main/", "/main/")
+        print(f"Firmware URL korrigiert zu: {self.firmware_url}")
+
+OTAUpdater.__init__ = patched_init
+
 # OTA Updater initialisieren (nach WLAN-Verbindung)
-# WICHTIG: Repository-URL verwenden, NICHT die direkte version.json URL!
 ota_updater = OTAUpdater(SSID, PASSWORD, "https://github.com/WolfgangNiehues/Stromverbrauch_bei_Anwendung_oeffentlich", "Aufgabe_1.py")
 
 #--------------------------------------------
@@ -106,17 +122,20 @@ while True:
         if mqtt_client:
             mqtt_client.publish(topic, payload)
         time.sleep(6)  # 6 Sekunden warten
-        
-        # OTA Update prüfen (alle 10 Zyklen)
+          # OTA Update prüfen (alle 10 Zyklen)
         ota_counter += 1
         
         if ota_counter % 10 == 0:  # Alle 10 Messungen prüfen
             try:
+                print(f"OTA Check #{ota_counter//10}: Prüfe auf Updates...")
                 if ota_updater.check_for_updates():
                     print("Update verfügbar! Lade herunter...")
                     ota_updater.download_and_install_update_if_available()
+                else:
+                    print("Keine Updates verfügbar.")
             except Exception as ota_error:
                 print(f"OTA Fehler: {ota_error}")
+                print("Programm läuft trotz OTA-Fehler weiter...")
                 
     except KeyboardInterrupt:
         print("Programm wurde durch den Benutzer beendet.")
